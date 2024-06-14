@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property name="APPLICATION_LEVEL" value="DEBUG"/>
+    <property name="ROOT_LEVEL" value="WARN"/>
+    <property name="STACK_TRACE_COUNT" value="10"/>
+    <property name="CLASS_NAME_LENGTH" value="40"/>
+
+    <property name="PATTERN" scope="context"
+              value="%date{yyyy-MM-dd'T'HH:mm:ss.SSS} [%level] requestId:[%mdc{requestId}] thread:[%thread] clientIp:[%mdc{clientIp}] %logger{${CLASS_NAME_LENGTH}}.%method@%line:%n  %message %rootException{${STACK_TRACE_COUNT}}%n"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="com.blubank" additivity="true" level="${APPLICATION_LEVEL}"/>
+
+    <root level="${ROOT_LEVEL}">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
