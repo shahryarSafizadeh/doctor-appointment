@@ -10,7 +10,7 @@ import com.blubank.doctorappointment.persistence.entity.Appointment;
 import com.blubank.doctorappointment.persistence.entity.Doctor;
 import com.blubank.doctorappointment.persistence.repository.AppointmentRepository;
 import com.blubank.doctorappointment.persistence.repository.DoctorRepository;
-import com.blubank.doctorappointment.service.assembler.DoctorServiceAssembler;
+import com.blubank.doctorappointment.service.assembler.GeneralServiceAssembler;
 import com.blubank.doctorappointment.util.LockManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,7 +28,7 @@ public class DoctorService {
 
     private final AppointmentRepository appointmentRepository;
     private final DoctorRepository doctorRepository;
-    private final DoctorServiceAssembler doctorServiceAssembler;
+    private final GeneralServiceAssembler generalServiceAssembler;
     private final LockManager lockManager;
 
     public SetOpenAppointmentTimesResponseDto setOpenAppointmentTimes(SetOpenAppointmentTimesRequestDto request) throws
@@ -47,17 +47,17 @@ public class DoctorService {
         while (startTime.plusMinutes(30).isBefore(endTime) || startTime.plusMinutes(30).isEqual(endTime)) {
             Doctor doctor = (Doctor) doctorRepository.findById(request.getDoctorId())
                     .orElseThrow(() -> new UserNotFoundException("Doctor not found", ErrorType.GENERAL, ErrorCode.NO_DOCTOR_FOUND));
-            Appointment appointment = doctorServiceAssembler.convertNewAppointment(startTime, doctor);
+            Appointment appointment = generalServiceAssembler.convertNewAppointment(startTime, doctor);
             appointmentRepository.save(appointment);
             startTime = startTime.plusMinutes(30);
             appointmentsCount++;
         }
-        return doctorServiceAssembler.convertSetOpenAppointmentTimesResponseDto(appointmentsCount);
+        return generalServiceAssembler.convertSetOpenAppointmentTimesResponseDto(appointmentsCount);
     }
 
     public ViewAllAppointmentsResponseDto viewAllAppointments(Long doctorId) throws UserNotFoundException {
         List<Appointment> appointments = appointmentRepository.findByDoctorId(doctorId);
-        return doctorServiceAssembler.convertViewAllAppointmentsResponseDto(appointments);
+        return generalServiceAssembler.convertViewAllAppointmentsResponseDto(appointments);
     }
 
     @Transactional

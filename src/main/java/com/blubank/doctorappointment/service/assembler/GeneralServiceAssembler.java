@@ -1,9 +1,6 @@
 package com.blubank.doctorappointment.service.assembler;
 
-import com.blubank.doctorappointment.dto.AppointmentBaseDto;
-import com.blubank.doctorappointment.dto.SetOpenAppointmentTimesResponseDto;
-import com.blubank.doctorappointment.dto.TakenAppointmentDto;
-import com.blubank.doctorappointment.dto.ViewAllAppointmentsResponseDto;
+import com.blubank.doctorappointment.dto.*;
 import com.blubank.doctorappointment.persistence.entity.Appointment;
 import com.blubank.doctorappointment.persistence.entity.Doctor;
 import org.springframework.stereotype.Component;
@@ -18,7 +15,7 @@ import java.util.List;
  * @since 6/14/2024
  */
 @Component
-public class DoctorServiceAssembler {
+public class GeneralServiceAssembler {
 
     public Appointment convertNewAppointment(LocalDateTime startTime, Doctor doctor) {
         Appointment appointment = new Appointment();
@@ -63,7 +60,25 @@ public class DoctorServiceAssembler {
         }
     }
 
+    public ReserveAppointmentResponseDto convertReserveAppointmentResponseDto(Appointment appointment) {
+        ReserveAppointmentResponseDto responseDto = new ReserveAppointmentResponseDto();
+        AppointmentBaseDto appointmentBaseDto = convertToTakenAppointment(appointment);
+        responseDto.setReservedAppointment(appointmentBaseDto);
+        return responseDto;
+    }
+
+    public AppointmentBaseDto convertToTakenAppointment(Appointment appointment) {
+        AppointmentBaseDto appointmentBaseDto = new AppointmentBaseDto();
+        appointmentBaseDto.setAppointmentId(appointment.getId());
+        appointmentBaseDto.setTaken(appointment.isTaken());
+        appointmentBaseDto.setStartTime(appointment.getStartTime());
+        appointmentBaseDto.setEndTime(appointment.getEndTime());
+        appointmentBaseDto.setDate(appointment.getDate());
+        return appointmentBaseDto;
+    }
+
     private void setCommonAppointmentFields(AppointmentBaseDto appointmentBaseDto, Appointment appointment) {
+        appointmentBaseDto.setAppointmentId(appointment.getId());
         appointmentBaseDto.setDate(appointment.getDate());
         appointmentBaseDto.setStartTime(appointment.getStartTime());
         appointmentBaseDto.setEndTime(appointment.getEndTime());

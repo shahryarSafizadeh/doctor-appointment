@@ -14,6 +14,11 @@ import java.time.LocalDateTime;
 public class AppointmentBaseDto {
 
     /**
+     * ID of Appointment
+     */
+    private Long appointmentId;
+
+    /**
      * if the appointment is taken
      */
     private boolean isTaken;
@@ -36,6 +41,7 @@ public class AppointmentBaseDto {
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
+                .append("appointmentId", appointmentId)
                 .append("isTaken", isTaken)
                 .append("startTime", startTime)
                 .append("endTime", endTime)

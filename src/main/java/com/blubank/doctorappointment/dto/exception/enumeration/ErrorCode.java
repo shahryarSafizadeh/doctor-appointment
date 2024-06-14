@@ -24,7 +24,8 @@ public enum ErrorCode {
     /**
      * No doctor was found
      */
-    NO_DOCTOR_FOUND("04");
+    NO_DOCTOR_FOUND("04"),
+    NO_PATIENT_FOUND("05");
 
     private final String code;
 

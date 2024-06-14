@@ -8,7 +8,7 @@ import com.blubank.doctorappointment.persistence.entity.Appointment;
 import com.blubank.doctorappointment.persistence.entity.Doctor;
 import com.blubank.doctorappointment.persistence.repository.AppointmentRepository;
 import com.blubank.doctorappointment.persistence.repository.DoctorRepository;
-import com.blubank.doctorappointment.service.assembler.DoctorServiceAssembler;
+import com.blubank.doctorappointment.service.assembler.GeneralServiceAssembler;
 import com.blubank.doctorappointment.util.LockManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ public class DoctorServiceUTest {
     private DoctorRepository doctorRepository;
 
     @Mock
-    private DoctorServiceAssembler doctorServiceAssembler;
+    private GeneralServiceAssembler generalServiceAssembler;
 
     @Mock
     private LockManager lockManager;
@@ -93,8 +93,8 @@ public class DoctorServiceUTest {
     public void testSetOpenAppointmentTimes_Success() throws ValidationException, UserNotFoundException {
         when(doctorRepository.findById(anyLong())).thenReturn(Optional.of(doctor));
         when(appointmentRepository.save(any(Appointment.class))).thenReturn(appointment);
-        when(doctorServiceAssembler.convertNewAppointment(any(LocalDateTime.class), any(Doctor.class))).thenReturn(appointment);
-        when(doctorServiceAssembler.convertSetOpenAppointmentTimesResponseDto(anyInt())).thenReturn(new SetOpenAppointmentTimesResponseDto());
+        when(generalServiceAssembler.convertNewAppointment(any(LocalDateTime.class), any(Doctor.class))).thenReturn(appointment);
+        when(generalServiceAssembler.convertSetOpenAppointmentTimesResponseDto(anyInt())).thenReturn(new SetOpenAppointmentTimesResponseDto());
 
         SetOpenAppointmentTimesResponseDto response = doctorService.setOpenAppointmentTimes(requestDto);
         assertNotNull(response);
@@ -104,7 +104,7 @@ public class DoctorServiceUTest {
     public void testViewAllAppointments_Success() throws UserNotFoundException {
         List<Appointment> appointments = Arrays.asList(appointment);
         when(appointmentRepository.findByDoctorId(anyLong())).thenReturn(appointments);
-        when(doctorServiceAssembler.convertViewAllAppointmentsResponseDto(anyList())).thenReturn(new ViewAllAppointmentsResponseDto());
+        when(generalServiceAssembler.convertViewAllAppointmentsResponseDto(anyList())).thenReturn(new ViewAllAppointmentsResponseDto());
 
         ViewAllAppointmentsResponseDto response = doctorService.viewAllAppointments(1L);
         assertNotNull(response);
