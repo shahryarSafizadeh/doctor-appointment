@@ -13,6 +13,7 @@ import com.blubank.doctorappointment.persistence.repository.DoctorRepository;
 import com.blubank.doctorappointment.service.assembler.GeneralServiceAssembler;
 import com.blubank.doctorappointment.util.LockManager;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ import java.util.concurrent.locks.Lock;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DoctorService {
 
     private final AppointmentRepository appointmentRepository;
@@ -37,10 +39,12 @@ public class DoctorService {
         LocalDateTime endTime = request.getEndTime();
         int appointmentsCount = 0;
         if (endTime.isBefore(startTime)) {
+            log.error("Invalid time range: endTime {} is before startTime {}", endTime, startTime);
             throw new ValidationException("Invalid time range.", ErrorType.VALIDATION, ErrorCode.INVALID_TIME_RANGE);
         }
 
         if (Duration.between(startTime, endTime).toMinutes() < 30) {
+            log.info("Time range is less than 30 minutes. No appointments created.");
             return new SetOpenAppointmentTimesResponseDto();
         }
 
@@ -49,6 +53,7 @@ public class DoctorService {
                     .orElseThrow(() -> new UserNotFoundException("Doctor not found", ErrorType.GENERAL, ErrorCode.NO_DOCTOR_FOUND));
             Appointment appointment = generalServiceAssembler.convertNewAppointment(startTime, doctor);
             appointmentRepository.save(appointment);
+            log.debug("Created appointment for doctorId: {} at {}", doctor.getId(), startTime);
             startTime = startTime.plusMinutes(30);
             appointmentsCount++;
         }
@@ -56,30 +61,38 @@ public class DoctorService {
     }
 
     public ViewAllAppointmentsResponseDto viewAllAppointments(Long doctorId) throws UserNotFoundException {
+        log.info("Viewing all appointments for doctorId: {}", doctorId);
         List<Appointment> appointments = appointmentRepository.findByDoctorId(doctorId);
         return generalServiceAssembler.convertViewAllAppointmentsResponseDto(appointments);
     }
 
     @Transactional
     public void deleteAppointment(Long appointmentId, Long doctorId) throws NoAppointmentFoundException, AppointmentIsTakenException, AccessDeniedException {
+        log.info("Deleting appointment with id: {} for doctorId: {}", appointmentId, doctorId);
         Lock lock = lockManager.getLock(appointmentId);
         lock.lock();
         try {
+            log.debug("Lock caught for deleting appointment with id: {}", appointmentId);
             Optional<Appointment> appointmentOptional = appointmentRepository.findById(appointmentId);
             if (!appointmentOptional.isPresent()) {
+                log.error("Appointment with id: {} not found", appointmentId);
                 throw new NoAppointmentFoundException("Appointment not found", ErrorType.GENERAL, ErrorCode.NO_APPOINTMENT_FOUND);
             }
             Appointment appointment = appointmentOptional.get();
             if (!appointment.getDoctor().getId().equals(doctorId)) {
+                log.error("Doctor with id: {} not authorized to delete appointment with id: {}", doctorId, appointmentId);
                 throw new AccessDeniedException("Doctor not authorized to delete this appointment");
             }
             if (appointment.isTaken()) {
+                log.error("Cannot delete a taken appointment with id: {}", appointmentId);
                 throw new AppointmentIsTakenException("Cannot delete a taken appointment", ErrorType.GENERAL, ErrorCode.APPOINTMENT_IS_TAKEN);
             }
             appointmentRepository.delete(appointment);
+            log.info("Deleted appointment with id: {}", appointmentId);
         } finally {
             lock.unlock();
             lockManager.removeLock(appointmentId);
+            log.debug("Lock released after deleting appointment with id: {}", appointmentId);
         }
     }
 }

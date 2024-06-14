@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <property name="APPLICATION_LEVEL" value="DEBUG"/>
+    <property name="APPLICATION_LEVEL" value="INFO"/>
     <property name="ROOT_LEVEL" value="WARN"/>
     <property name="STACK_TRACE_COUNT" value="10"/>
     <property name="CLASS_NAME_LENGTH" value="40"/>
