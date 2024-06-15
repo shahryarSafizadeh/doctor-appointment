@@ -1,13 +1,11 @@
 package com.blubank.doctorappointment;
 
-import de.codecentric.boot.admin.server.config.EnableAdminServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.core.io.FileSystemResource;
 
-@EnableAdminServer
 @SpringBootApplication
 @Slf4j
 public class DoctorAppointmentApplication {

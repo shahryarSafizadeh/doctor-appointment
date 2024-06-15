@@ -4,6 +4,7 @@ import lombok.Data;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 /**
@@ -16,16 +17,19 @@ public class SetOpenAppointmentTimesRequestDto {
     /**
      * doctor id
      */
+    @NotNull
     private Long doctorId;
 
     /**
      * start time of appointment
      */
+    @NotNull
     private LocalDateTime startTime;
 
     /**
      * end time of appointment
      */
+    @NotNull
     private LocalDateTime endTime;
 
     @Override

@@ -2,7 +2,8 @@ package com.blubank.doctorappointment.service;
 
 import com.blubank.doctorappointment.dto.ReserveAppointmentRequestDto;
 import com.blubank.doctorappointment.dto.ReserveAppointmentResponseDto;
-import com.blubank.doctorappointment.dto.ViewAllAppointmentsResponseDto;
+import com.blubank.doctorappointment.dto.ViewAllOpenAppointmentResponseDto;
+import com.blubank.doctorappointment.dto.ViewPersonalAppointmentsResponseDto;
 import com.blubank.doctorappointment.dto.exception.AppointmentIsTakenException;
 import com.blubank.doctorappointment.dto.exception.NoAppointmentFoundException;
 import com.blubank.doctorappointment.dto.exception.UserNotFoundException;
@@ -13,6 +14,7 @@ import com.blubank.doctorappointment.persistence.entity.Patient;
 import com.blubank.doctorappointment.persistence.repository.AppointmentRepository;
 import com.blubank.doctorappointment.persistence.repository.PatientRepository;
 import com.blubank.doctorappointment.service.assembler.GeneralServiceAssembler;
+import com.blubank.doctorappointment.service.assembler.PatientServiceAssembler;
 import com.blubank.doctorappointment.util.LockManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,16 +39,17 @@ public class PatientService {
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
     private final GeneralServiceAssembler generalServiceAssembler;
+    private final PatientServiceAssembler patientServiceAssembler;
     private final LockManager lockManager;
 
-    public ViewAllAppointmentsResponseDto viewAllOpenAppointments(String date) {
+    public ViewAllOpenAppointmentResponseDto viewAllOpenAppointments(String date) {
         log.info("Viewing all open appointments for date: {}", date);
         LocalDate localDate = LocalDate.parse(date);
         LocalDateTime startOfDay = localDate.atStartOfDay();
         LocalDateTime endOfDay = localDate.atTime(23, 59, 59);
         List<Appointment> appointmentList = appointmentRepository.findByIsTakenFalseAndStartTimeBetween(startOfDay, endOfDay);
         log.debug("Found {} open appointments for date: {}", appointmentList.size(), date);
-        return generalServiceAssembler.convertViewAllAppointmentsResponseDto(appointmentList);
+        return patientServiceAssembler.convertViewAllOpenAppointmentsResponseDto(appointmentList);
     }
 
     @Transactional
@@ -65,7 +68,7 @@ public class PatientService {
             Appointment appointment = appointmentOpt.get();
             if (appointment.isTaken()) {
                 log.error("Appointment with id: {} is already taken", request.getAppointmentId());
-                throw new AppointmentIsTakenException("Cannot delete a taken appointment", ErrorType.GENERAL, ErrorCode.APPOINTMENT_IS_TAKEN);
+                throw new AppointmentIsTakenException("Cannot reserve a taken appointment", ErrorType.GENERAL, ErrorCode.APPOINTMENT_IS_TAKEN);
             }
             Patient patient = patientRepository.findById(request.getPatientId())
                     .orElseThrow(() -> new UserNotFoundException("Patient not found", ErrorType.GENERAL, ErrorCode.NO_PATIENT_FOUND));
@@ -73,7 +76,7 @@ public class PatientService {
             appointment.setTaken(true);
             appointmentRepository.save(appointment);
             log.info("Reserved appointment with id: {} for patientId: {}", request.getAppointmentId(), request.getPatientId());
-            return generalServiceAssembler.convertReserveAppointmentResponseDto(appointment);
+            return patientServiceAssembler.convertReserveAppointmentResponseDto(appointment);
         } finally {
             lock.unlock();
             lockManager.removeLock(request.getAppointmentId());
@@ -81,8 +84,8 @@ public class PatientService {
         }
     }
 
-    public ViewAllAppointmentsResponseDto viewPersonalAppointments(Long patientId) {
+    public ViewPersonalAppointmentsResponseDto viewPersonalAppointments(Long patientId) {
         List<Appointment> appointmentList = appointmentRepository.findByPatientId(patientId);
-        return generalServiceAssembler.convertViewAllAppointmentsResponseDto(appointmentList);
+        return patientServiceAssembler.convertViewPersonalAppointmentsResponseDto(appointmentList);
     }
 }

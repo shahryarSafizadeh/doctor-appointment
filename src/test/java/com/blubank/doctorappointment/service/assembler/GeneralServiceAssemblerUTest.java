@@ -1,18 +1,17 @@
 package com.blubank.doctorappointment.service.assembler;
 
 
-import com.blubank.doctorappointment.dto.*;
+import com.blubank.doctorappointment.dto.AppointmentBaseDto;
+import com.blubank.doctorappointment.dto.ViewAllAppointmentsResponseDto;
 import com.blubank.doctorappointment.persistence.entity.Appointment;
-import com.blubank.doctorappointment.persistence.entity.Doctor;
 import com.blubank.doctorappointment.persistence.entity.Patient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.MockitoAnnotations;
-import org.springframework.util.CollectionUtils;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -20,113 +19,83 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Shahryar Safizadeh
- * @since 6/14/2024
+ * @since 6/15/2024 
  */
+
+@ExtendWith(MockitoExtension.class)
 public class GeneralServiceAssemblerUTest {
 
     @InjectMocks
     private GeneralServiceAssembler generalServiceAssembler;
 
-    private Doctor doctor;
+    private static final Long APPOINTMENT_ID = 1L;
+    private static final boolean APPOINTMENT_TAKEN = true;
+    private static final boolean APPOINTMENT_NOT_TAKEN = false;
+    private static final String PATIENT_PHONE_NUMBER = "123456789";
+    private static final String PATIENT_NAME = "Shahryar";
+    private static final LocalDateTime START_TIME = LocalDateTime.now();
+    private static final LocalDateTime END_TIME = START_TIME.plusMinutes(30);
+    private static final LocalDateTime APPOINTMENT_DATE = START_TIME.toLocalDate().atStartOfDay();
+
     private Appointment appointment;
-    private LocalDateTime startTime;
+    private Patient patient;
 
     @BeforeEach
     public void setup() {
-        MockitoAnnotations.openMocks(this);
-        doctor = new Doctor();
-        doctor.setId(1L);
-        startTime = LocalDateTime.now();
-
+        patient = new Patient();
+        patient.setName(PATIENT_NAME);
+        patient.setPhoneNumber(PATIENT_PHONE_NUMBER);
         appointment = new Appointment();
-        appointment.setDoctor(doctor);
-        appointment.setTaken(false);
-        appointment.setDate(LocalDateTime.now());
-        appointment.setStartTime(startTime);
-        appointment.setEndTime(startTime.plusMinutes(30));
-    }
-
-    @Test
-    public void testConvertNewAppointment() {
-        Appointment newAppointment = generalServiceAssembler.convertNewAppointment(startTime, doctor);
-        assertNotNull(newAppointment);
-        assertEquals(doctor, newAppointment.getDoctor());
-        assertEquals(startTime, newAppointment.getStartTime());
-        assertEquals(startTime.plusMinutes(30), newAppointment.getEndTime());
-        assertFalse(newAppointment.isTaken());
-    }
-
-    @Test
-    public void testConvertSetOpenAppointmentTimesResponseDto() {
-        int appointmentsCount = 5;
-        SetOpenAppointmentTimesResponseDto responseDto = generalServiceAssembler.convertSetOpenAppointmentTimesResponseDto(appointmentsCount);
-        assertNotNull(responseDto);
-        assertEquals(appointmentsCount, responseDto.getAppointmentsCount());
-    }
-
-    @Test
-    public void testConvertViewAllAppointmentsResponseDto_EmptyList() {
-        List<Appointment> appointments = new ArrayList<>();
-        ViewAllAppointmentsResponseDto responseDto = generalServiceAssembler.convertViewAllAppointmentsResponseDto(appointments);
-        assertNotNull(responseDto);
-        assertTrue(CollectionUtils.isEmpty(responseDto.getAppointments()));
-    }
-
-    @Test
-    public void testConvertViewAllAppointmentsResponseDto_NonEmptyList() {
-        List<Appointment> appointments = Arrays.asList(appointment);
-        ViewAllAppointmentsResponseDto responseDto = generalServiceAssembler.convertViewAllAppointmentsResponseDto(appointments);
-        assertNotNull(responseDto);
-        assertFalse(CollectionUtils.isEmpty(responseDto.getAppointments()));
-        assertEquals(1, responseDto.getAppointments().size());
-    }
-
-    @Test
-    public void testConvertAppointmentBaseDto_TakenAppointment() {
-        appointment.setTaken(true);
-        Patient patient = new Patient();
-        patient.setName("Shahryar khan");
-        patient.setPhoneNumber("123456789");
+        appointment.setId(APPOINTMENT_ID);
         appointment.setPatient(patient);
+        appointment.setTaken(APPOINTMENT_TAKEN);
+        appointment.setDate(APPOINTMENT_DATE);
+        appointment.setStartTime(START_TIME);
+        appointment.setEndTime(END_TIME);
+    }
 
+    @Test
+    public void testConvertAppointmentBaseDto_Taken() {
         AppointmentBaseDto appointmentBaseDto = generalServiceAssembler.convertAppointmentBaseDto(appointment);
-        assertTrue(appointmentBaseDto instanceof TakenAppointmentDto);
-        TakenAppointmentDto takenAppointmentDto = (TakenAppointmentDto) appointmentBaseDto;
-        assertEquals("Shahryar khan", takenAppointmentDto.getPatientName());
-        assertEquals("123456789", takenAppointmentDto.getPatientPhoneNumber());
-        assertEquals(appointment.getStartTime(), takenAppointmentDto.getStartTime());
-    }
-
-    @Test
-    public void testConvertAppointmentBaseDto_NotTakenAppointment() {
-        appointment.setTaken(false);
-        AppointmentBaseDto appointmentBaseDto = generalServiceAssembler.convertAppointmentBaseDto(appointment);
-        assertFalse(appointmentBaseDto instanceof TakenAppointmentDto);
-        assertEquals(appointment.getStartTime(), appointmentBaseDto.getStartTime());
-        assertEquals(appointment.getEndTime(), appointmentBaseDto.getEndTime());
-    }
-
-    @Test
-    public void testConvertReserveAppointmentResponseDto() {
-        ReserveAppointmentResponseDto responseDto = generalServiceAssembler.convertReserveAppointmentResponseDto(appointment);
-        assertNotNull(responseDto);
-        assertNotNull(responseDto.getReservedAppointment());
-        assertEquals(appointment.getId(), responseDto.getReservedAppointment().getAppointmentId());
-        assertEquals(appointment.isTaken(), responseDto.getReservedAppointment().isTaken());
-        assertEquals(appointment.getStartTime(), responseDto.getReservedAppointment().getStartTime());
-        assertEquals(appointment.getEndTime(), responseDto.getReservedAppointment().getEndTime());
-        assertEquals(appointment.getDate(), responseDto.getReservedAppointment().getDate());
-    }
-
-    @Test
-    public void testConvertToTakenAppointment() {
-        GeneralServiceAssembler doctorServiceAssembler;
-        AppointmentBaseDto appointmentBaseDto = generalServiceAssembler.convertToTakenAppointment(appointment);
         assertNotNull(appointmentBaseDto);
-        assertEquals(appointment.getId(), appointmentBaseDto.getAppointmentId());
-        assertEquals(appointment.isTaken(), appointmentBaseDto.isTaken());
-        assertEquals(appointment.getStartTime(), appointmentBaseDto.getStartTime());
-        assertEquals(appointment.getEndTime(), appointmentBaseDto.getEndTime());
-        assertEquals(appointment.getDate(), appointmentBaseDto.getDate());
+        assertEquals(APPOINTMENT_ID, appointmentBaseDto.getAppointmentId());
+        assertEquals(APPOINTMENT_TAKEN, appointmentBaseDto.isTaken());
+        assertEquals(APPOINTMENT_DATE, appointmentBaseDto.getDate());
+        assertEquals(START_TIME, appointmentBaseDto.getStartTime());
+        assertEquals(END_TIME, appointmentBaseDto.getEndTime());
+        assertEquals(PATIENT_PHONE_NUMBER, appointmentBaseDto.getPatientPhoneNumber());
+        assertEquals(PATIENT_NAME, appointmentBaseDto.getPatientName());
+    }
+
+    @Test
+    public void testConvertAppointmentBaseDto_NotTaken() {
+        appointment.setTaken(APPOINTMENT_NOT_TAKEN);
+        AppointmentBaseDto appointmentBaseDto = generalServiceAssembler.convertAppointmentBaseDto(appointment);
+        assertNotNull(appointmentBaseDto);
+        assertEquals(APPOINTMENT_ID, appointmentBaseDto.getAppointmentId());
+        assertEquals(APPOINTMENT_NOT_TAKEN, appointmentBaseDto.isTaken());
+        assertEquals(APPOINTMENT_DATE, appointmentBaseDto.getDate());
+        assertEquals(START_TIME, appointmentBaseDto.getStartTime());
+        assertEquals(END_TIME, appointmentBaseDto.getEndTime());
+        assertNull(appointmentBaseDto.getPatientPhoneNumber());
+        assertNull(appointmentBaseDto.getPatientName());
+    }
+
+    @Test
+    public void testConvertAppointmentsResponseDto() {
+        List<Appointment> appointments = Arrays.asList(appointment);
+        ViewAllAppointmentsResponseDto responseDto = new ViewAllAppointmentsResponseDto();
+        ViewAllAppointmentsResponseDto result = generalServiceAssembler.convertAppointmentsResponseDto(appointments, responseDto);
+        assertNotNull(result);
+        assertNotNull(result.getAppointments());
+        assertEquals(1, result.getAppointments().size());
+        AppointmentBaseDto appointmentBaseDto = result.getAppointments().get(0);
+        assertEquals(APPOINTMENT_ID, appointmentBaseDto.getAppointmentId());
+        assertEquals(APPOINTMENT_TAKEN, appointmentBaseDto.isTaken());
+        assertEquals(APPOINTMENT_DATE, appointmentBaseDto.getDate());
+        assertEquals(START_TIME, appointmentBaseDto.getStartTime());
+        assertEquals(END_TIME, appointmentBaseDto.getEndTime());
+        assertEquals(PATIENT_PHONE_NUMBER, appointmentBaseDto.getPatientPhoneNumber());
+        assertEquals(PATIENT_NAME, appointmentBaseDto.getPatientName());
     }
 }

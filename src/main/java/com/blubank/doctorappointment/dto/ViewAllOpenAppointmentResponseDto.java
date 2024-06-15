@@ -6,20 +6,14 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 
 /**
  * @author Shahryar Safizadeh
- * @since 6/14/2024
+ * @since 6/15/2024 
  */
 @Data
-public class SetOpenAppointmentTimesResponseDto {
-
-    /**
-     * number of appointments that have been set
-     */
-    private int appointmentsCount;
+public class ViewAllOpenAppointmentResponseDto extends AllAppointmentsBaseDto {
 
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
-                .append("appointmentsCount", appointmentsCount)
                 .toString();
     }
 }

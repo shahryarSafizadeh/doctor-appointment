@@ -1,17 +1,13 @@
 package com.blubank.doctorappointment.advice;
 
 import com.blubank.doctorappointment.dto.SystemFailureResponse;
-import com.blubank.doctorappointment.dto.exception.AppointmentSystemException;
-import com.blubank.doctorappointment.dto.exception.enumeration.ErrorCode;
+import com.blubank.doctorappointment.dto.exception.*;
 import com.blubank.doctorappointment.util.ResponseUtil;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Shahryar Safizadeh
@@ -20,21 +16,45 @@ import java.util.Map;
 @RestControllerAdvice
 public class ExceptionControllerAdvice extends ResponseEntityExceptionHandler {
 
-    private static final Map<String, HttpStatus> statusCodes = new HashMap<>();
-
-    {
-        statusCodes.put(ErrorCode.INVALID_TIME_RANGE.getCode(), HttpStatus.BAD_REQUEST);                           //400
-        statusCodes.put(ErrorCode.NO_APPOINTMENT_FOUND.getCode(), HttpStatus.NOT_FOUND);                           //404
-        statusCodes.put(ErrorCode.APPOINTMENT_IS_TAKEN.getCode(), HttpStatus.NOT_ACCEPTABLE);                      //406
-    }
-
     @ExceptionHandler(AppointmentSystemException.class)
-    public ResponseEntity<SystemFailureResponse> exception(AppointmentSystemException appointmentSystemException) {
-        SystemFailureResponse failureResponse = ResponseUtil.createSystemFailureResponse(appointmentSystemException);
-        return new ResponseEntity<>(failureResponse, getHttpStatusCode(appointmentSystemException.getErrorCode()));
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public SystemFailureResponse appointmentSystemException(AppointmentSystemException appointmentSystemException) {
+        return ResponseUtil.createSystemFailureResponse(appointmentSystemException);
     }
 
-    private HttpStatus getHttpStatusCode(String errorCode) {
-        return statusCodes.getOrDefault(errorCode, HttpStatus.INTERNAL_SERVER_ERROR);
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public SystemFailureResponse accessDeniedException(AccessDeniedException accessDeniedException) {
+        return ResponseUtil.createSystemFailureResponse(accessDeniedException);
+    }
+
+    @ExceptionHandler(AppointmentIsTakenException.class)
+    @ResponseStatus(HttpStatus.NOT_ACCEPTABLE)
+    public SystemFailureResponse appointmentIsTakenException(AppointmentIsTakenException appointmentIsTakenException) {
+        return ResponseUtil.createSystemFailureResponse(appointmentIsTakenException);
+    }
+
+    @ExceptionHandler(NoAppointmentFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public SystemFailureResponse noAppointmentFoundException(NoAppointmentFoundException noAppointmentFoundException) {
+        return ResponseUtil.createSystemFailureResponse(noAppointmentFoundException);
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public SystemFailureResponse userNotFoundException(UserNotFoundException userNotFoundException) {
+        return ResponseUtil.createSystemFailureResponse(userNotFoundException);
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public SystemFailureResponse validationException(ValidationException validationException) {
+        return ResponseUtil.createSystemFailureResponse(validationException);
+    }
+
+    @ExceptionHandler(Throwable.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public SystemFailureResponse throwable(Throwable appointmentSystemException) {
+        return ResponseUtil.createSystemFailureResponse(appointmentSystemException);
     }
 }

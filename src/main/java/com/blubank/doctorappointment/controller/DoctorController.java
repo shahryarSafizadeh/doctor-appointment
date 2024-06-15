@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
+
 /**
  * @author Shahryar Safizadeh
  * @since 6/14/2024
@@ -30,7 +32,7 @@ public class DoctorController {
     @PostMapping(value = "/appointment",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public SetOpenAppointmentTimesResponseDto setOpenAppointmentTimes(@RequestBody SetOpenAppointmentTimesRequestDto request)
+    public SetOpenAppointmentTimesResponseDto setOpenAppointmentTimes(@RequestBody @Valid SetOpenAppointmentTimesRequestDto request)
             throws UserNotFoundException, ValidationException {
         return doctorService.setOpenAppointmentTimes(request);
     }
@@ -52,10 +54,10 @@ public class DoctorController {
      * Deletes an appointment by its ID.
      *
      * @param appointmentId the ID of the appointment to be deleted
-     * @param doctorId the ID of Doctor
-     * @throws AppointmentIsTakenException       if the appointment is already taken
+     * @param doctorId      the ID of Doctor
+     * @throws AppointmentIsTakenException if the appointment is already taken
      * @throws NoAppointmentFoundException if no appointment is found with the provided ID
-     * @throws AccessDeniedException             if the user (doctor) does not have access to the wanted appointment
+     * @throws AccessDeniedException       if the user (doctor) does not have access to the wanted appointment
      */
     @DeleteMapping(value = "/appointment/{appointmentId}",
             produces = MediaType.APPLICATION_JSON_VALUE)

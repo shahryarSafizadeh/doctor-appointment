@@ -8,7 +8,7 @@ import com.blubank.doctorappointment.persistence.entity.Appointment;
 import com.blubank.doctorappointment.persistence.entity.Doctor;
 import com.blubank.doctorappointment.persistence.repository.AppointmentRepository;
 import com.blubank.doctorappointment.persistence.repository.DoctorRepository;
-import com.blubank.doctorappointment.service.assembler.GeneralServiceAssembler;
+import com.blubank.doctorappointment.service.assembler.DoctorServiceAssembler;
 import com.blubank.doctorappointment.util.LockManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,19 +24,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
-/**
- * @author Shahryar Safizadeh
- * @since 6/14/2024
- */
 @ExtendWith(MockitoExtension.class)
 public class DoctorServiceUTest {
-
     @Mock
     private AppointmentRepository appointmentRepository;
 
@@ -44,7 +37,7 @@ public class DoctorServiceUTest {
     private DoctorRepository doctorRepository;
 
     @Mock
-    private GeneralServiceAssembler generalServiceAssembler;
+    private DoctorServiceAssembler doctorServiceAssembler;
 
     @Mock
     private LockManager lockManager;
@@ -52,75 +45,91 @@ public class DoctorServiceUTest {
     @InjectMocks
     private DoctorService doctorService;
 
-    private SetOpenAppointmentTimesRequestDto requestDto;
+    private static final Long DOCTOR_ID = 1L;
+    private static final Long APPOINTMENT_ID = 1L;
+    private static final LocalDateTime START_TIME = LocalDateTime.now();
+    private static final LocalDateTime END_TIME = START_TIME.plusHours(1);
+    private static final int APPOINTMENTS_COUNT = 2;
+
     private Doctor doctor;
     private Appointment appointment;
 
     @BeforeEach
     public void setup() {
         doctor = new Doctor();
-        doctor.setId(1L);
-
-        requestDto = new SetOpenAppointmentTimesRequestDto();
-        requestDto.setDoctorId(doctor.getId());
-        requestDto.setStartTime(LocalDateTime.now());
-        requestDto.setEndTime(LocalDateTime.now().plusHours(2));
+        doctor.setId(DOCTOR_ID);
 
         appointment = new Appointment();
+        appointment.setId(APPOINTMENT_ID);
         appointment.setDoctor(doctor);
-        appointment.setStartTime(requestDto.getStartTime());
-        appointment.setEndTime(requestDto.getEndTime());
+        appointment.setTaken(false);
+        appointment.setDate(START_TIME);
+        appointment.setStartTime(START_TIME);
+        appointment.setEndTime(END_TIME);
     }
 
     @Test
     public void testSetOpenAppointmentTimes_ValidationException() {
-        requestDto.setEndTime(requestDto.getStartTime().minusMinutes(30));
-        assertThrows(ValidationException.class, () -> {
-            doctorService.setOpenAppointmentTimes(requestDto);
+        SetOpenAppointmentTimesRequestDto request = new SetOpenAppointmentTimesRequestDto();
+        request.setDoctorId(DOCTOR_ID);
+        request.setStartTime(END_TIME);
+        request.setEndTime(START_TIME);
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+            doctorService.setOpenAppointmentTimes(request);
         });
+        assertEquals("Invalid time range.", exception.getMessage());
     }
 
     @Test
     public void testSetOpenAppointmentTimes_UserNotFoundException() {
-        when(doctorRepository.findById(anyLong())).thenReturn(Optional.empty());
-
-        assertThrows(UserNotFoundException.class, () -> {
-            doctorService.setOpenAppointmentTimes(requestDto);
+        SetOpenAppointmentTimesRequestDto request = new SetOpenAppointmentTimesRequestDto();
+        request.setDoctorId(DOCTOR_ID);
+        request.setStartTime(START_TIME);
+        request.setEndTime(END_TIME);
+        when(doctorRepository.findById(DOCTOR_ID)).thenReturn(Optional.empty());
+        UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> {
+            doctorService.setOpenAppointmentTimes(request);
         });
+        assertEquals("Doctor not found", exception.getMessage());
     }
 
     @Test
     public void testSetOpenAppointmentTimes_Success() throws ValidationException, UserNotFoundException {
-        when(doctorRepository.findById(anyLong())).thenReturn(Optional.of(doctor));
+        SetOpenAppointmentTimesRequestDto request = new SetOpenAppointmentTimesRequestDto();
+        request.setDoctorId(DOCTOR_ID);
+        request.setStartTime(START_TIME);
+        request.setEndTime(END_TIME);
+        when(doctorRepository.findById(DOCTOR_ID)).thenReturn(Optional.of(doctor));
+        when(doctorServiceAssembler.convertNewAppointment(any(LocalDateTime.class), eq(doctor))).thenReturn(appointment);
         when(appointmentRepository.save(any(Appointment.class))).thenReturn(appointment);
-        when(generalServiceAssembler.convertNewAppointment(any(LocalDateTime.class), any(Doctor.class))).thenReturn(appointment);
-        when(generalServiceAssembler.convertSetOpenAppointmentTimesResponseDto(anyInt())).thenReturn(new SetOpenAppointmentTimesResponseDto());
-
-        SetOpenAppointmentTimesResponseDto response = doctorService.setOpenAppointmentTimes(requestDto);
+        SetOpenAppointmentTimesResponseDto setOpenAppointmentTimesResponseDto = new SetOpenAppointmentTimesResponseDto();
+        setOpenAppointmentTimesResponseDto.setAppointmentsCount(APPOINTMENTS_COUNT);
+        when(doctorServiceAssembler.convertSetOpenAppointmentTimesResponseDto(anyInt())).thenReturn(setOpenAppointmentTimesResponseDto);
+        SetOpenAppointmentTimesResponseDto response = doctorService.setOpenAppointmentTimes(request);
         assertNotNull(response);
+        assertEquals(APPOINTMENTS_COUNT, response.getAppointmentsCount());
     }
 
     @Test
     public void testViewAllAppointments_Success() throws UserNotFoundException {
         List<Appointment> appointments = Arrays.asList(appointment);
-        when(appointmentRepository.findByDoctorId(anyLong())).thenReturn(appointments);
-        when(generalServiceAssembler.convertViewAllAppointmentsResponseDto(anyList())).thenReturn(new ViewAllAppointmentsResponseDto());
-
-        ViewAllAppointmentsResponseDto response = doctorService.viewAllAppointments(1L);
+        ViewAllAppointmentsResponseDto expectedResponse = new ViewAllAppointmentsResponseDto();
+        when(appointmentRepository.findByDoctorId(DOCTOR_ID)).thenReturn(appointments);
+        when(doctorServiceAssembler.convertViewAllAppointmentsResponseDto(appointments)).thenReturn(expectedResponse);
+        ViewAllAppointmentsResponseDto response = doctorService.viewAllAppointments(DOCTOR_ID);
         assertNotNull(response);
     }
 
     @Test
     @Transactional
     public void testDeleteAppointment_NoAppointmentFoundException() {
-        when(appointmentRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.empty());
         Lock lock = mock(Lock.class);
-        when(lockManager.getLock(anyLong())).thenReturn(lock);
-
-        assertThrows(NoAppointmentFoundException.class, () -> {
-            doctorService.deleteAppointment(1L, 1L);
+        when(lockManager.getLock(APPOINTMENT_ID)).thenReturn(lock);
+        NoAppointmentFoundException exception = assertThrows(NoAppointmentFoundException.class, () -> {
+            doctorService.deleteAppointment(APPOINTMENT_ID, DOCTOR_ID);
         });
-
+        assertEquals("Appointment not found", exception.getMessage());
         verify(lock).lock();
         verify(lock).unlock();
     }
@@ -129,14 +138,13 @@ public class DoctorServiceUTest {
     @Transactional
     public void testDeleteAppointment_AppointmentIsTakenException() {
         appointment.setTaken(true);
-        when(appointmentRepository.findById(anyLong())).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
         Lock lock = mock(Lock.class);
-        when(lockManager.getLock(anyLong())).thenReturn(lock);
-
-        assertThrows(AppointmentIsTakenException.class, () -> {
-            doctorService.deleteAppointment(1L, 1L);
+        when(lockManager.getLock(APPOINTMENT_ID)).thenReturn(lock);
+        AppointmentIsTakenException exception = assertThrows(AppointmentIsTakenException.class, () -> {
+            doctorService.deleteAppointment(APPOINTMENT_ID, DOCTOR_ID);
         });
-
+        assertEquals("Cannot delete a taken appointment", exception.getMessage());
         verify(lock).lock();
         verify(lock).unlock();
     }
@@ -147,14 +155,13 @@ public class DoctorServiceUTest {
         Doctor anotherDoctor = new Doctor();
         anotherDoctor.setId(2L);
         appointment.setDoctor(anotherDoctor);
-        when(appointmentRepository.findById(anyLong())).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
         Lock lock = mock(Lock.class);
-        when(lockManager.getLock(anyLong())).thenReturn(lock);
-
-        assertThrows(AccessDeniedException.class, () -> {
-            doctorService.deleteAppointment(1L, 1L);
+        when(lockManager.getLock(APPOINTMENT_ID)).thenReturn(lock);
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> {
+            doctorService.deleteAppointment(APPOINTMENT_ID, DOCTOR_ID);
         });
-
+        assertEquals("Doctor not authorized to delete this appointment", exception.getMessage());
         verify(lock).lock();
         verify(lock).unlock();
     }
@@ -162,14 +169,13 @@ public class DoctorServiceUTest {
     @Test
     @Transactional
     public void testDeleteAppointment_Success() throws NoAppointmentFoundException, AppointmentIsTakenException, AccessDeniedException {
-        when(appointmentRepository.findById(anyLong())).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.findById(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
         Lock lock = mock(Lock.class);
-        when(lockManager.getLock(anyLong())).thenReturn(lock);
-
-        doctorService.deleteAppointment(1L, 1L);
-
+        when(lockManager.getLock(APPOINTMENT_ID)).thenReturn(lock);
+        doctorService.deleteAppointment(APPOINTMENT_ID, DOCTOR_ID);
         verify(appointmentRepository).delete(appointment);
         verify(lock).lock();
         verify(lock).unlock();
     }
 }
+

@@ -1,8 +1,6 @@
 package com.blubank.doctorappointment.controller;
 
-import com.blubank.doctorappointment.dto.ReserveAppointmentRequestDto;
-import com.blubank.doctorappointment.dto.ReserveAppointmentResponseDto;
-import com.blubank.doctorappointment.dto.ViewAllAppointmentsResponseDto;
+import com.blubank.doctorappointment.dto.*;
 import com.blubank.doctorappointment.dto.exception.AppointmentIsTakenException;
 import com.blubank.doctorappointment.dto.exception.NoAppointmentFoundException;
 import com.blubank.doctorappointment.dto.exception.UserNotFoundException;
@@ -10,6 +8,8 @@ import com.blubank.doctorappointment.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
 
 /**
  * @author Shahryar Safizadeh
@@ -25,11 +25,11 @@ public class PatientController {
      * Retrieves all open appointments for a specific date.
      *
      * @param date the date for which to retrieve open appointments, in the format "yyyy-MM-dd"
-     * @return a {@link ViewAllAppointmentsResponseDto} containing the details of all open appointments for the specified date
+     * @return a {@link ViewAllOpenAppointmentResponseDto} containing the details of all open appointments for the specified date
      */
-    @GetMapping(value = "/appointment/all",
+    @GetMapping(value = "/appointment/open",
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ViewAllAppointmentsResponseDto viewAllOpenAppointments(@RequestParam String date) {
+    public ViewAllOpenAppointmentResponseDto viewAllOpenAppointments(@RequestParam String date) {
         return patientService.viewAllOpenAppointments(date);
     }
 
@@ -45,7 +45,7 @@ public class PatientController {
     @PostMapping(value = "/appointment/reservation",
             produces = MediaType.APPLICATION_JSON_VALUE,
             consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ReserveAppointmentResponseDto reserveAppointment(@RequestBody ReserveAppointmentRequestDto request)
+    public ReserveAppointmentResponseDto reserveAppointment(@RequestBody @Valid ReserveAppointmentRequestDto request)
             throws UserNotFoundException, NoAppointmentFoundException, AppointmentIsTakenException {
         return patientService.reserveAppointment(request);
     }
@@ -54,11 +54,11 @@ public class PatientController {
      * Retrieves all personal appointments for a specific patient.
      *
      * @param patientId the ID of the patient whose appointments are to be retrieved
-     * @return a {@link ViewAllAppointmentsResponseDto} containing the details of all appointments for the specified patient
+     * @return a {@link ViewPersonalAppointmentsResponseDto} containing the details of all appointments for the specified patient
      */
-    @GetMapping(value = "appointment",
+    @GetMapping(value = "/appointment/personal",
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ViewAllAppointmentsResponseDto viewPersonalAppointments(@RequestParam Long patientId) {
+    public ViewPersonalAppointmentsResponseDto viewPersonalAppointments(@RequestParam Long patientId) {
         return patientService.viewPersonalAppointments(patientId);
     }
 }

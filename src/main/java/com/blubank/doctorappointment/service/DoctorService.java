@@ -10,7 +10,7 @@ import com.blubank.doctorappointment.persistence.entity.Appointment;
 import com.blubank.doctorappointment.persistence.entity.Doctor;
 import com.blubank.doctorappointment.persistence.repository.AppointmentRepository;
 import com.blubank.doctorappointment.persistence.repository.DoctorRepository;
-import com.blubank.doctorappointment.service.assembler.GeneralServiceAssembler;
+import com.blubank.doctorappointment.service.assembler.DoctorServiceAssembler;
 import com.blubank.doctorappointment.util.LockManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +23,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 
+/**
+ * @author Shahryar Safizadeh
+ * @since 6/14/2024 
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -30,7 +34,7 @@ public class DoctorService {
 
     private final AppointmentRepository appointmentRepository;
     private final DoctorRepository doctorRepository;
-    private final GeneralServiceAssembler generalServiceAssembler;
+    private final DoctorServiceAssembler doctorServiceAssembler;
     private final LockManager lockManager;
 
     public SetOpenAppointmentTimesResponseDto setOpenAppointmentTimes(SetOpenAppointmentTimesRequestDto request) throws
@@ -47,23 +51,22 @@ public class DoctorService {
             log.info("Time range is less than 30 minutes. No appointments created.");
             return new SetOpenAppointmentTimesResponseDto();
         }
-
+        Doctor doctor = (Doctor) doctorRepository.findById(request.getDoctorId())
+                .orElseThrow(() -> new UserNotFoundException("Doctor not found", ErrorType.GENERAL, ErrorCode.NO_DOCTOR_FOUND));
         while (startTime.plusMinutes(30).isBefore(endTime) || startTime.plusMinutes(30).isEqual(endTime)) {
-            Doctor doctor = (Doctor) doctorRepository.findById(request.getDoctorId())
-                    .orElseThrow(() -> new UserNotFoundException("Doctor not found", ErrorType.GENERAL, ErrorCode.NO_DOCTOR_FOUND));
-            Appointment appointment = generalServiceAssembler.convertNewAppointment(startTime, doctor);
+            Appointment appointment = doctorServiceAssembler.convertNewAppointment(startTime, doctor);
             appointmentRepository.save(appointment);
             log.debug("Created appointment for doctorId: {} at {}", doctor.getId(), startTime);
             startTime = startTime.plusMinutes(30);
             appointmentsCount++;
         }
-        return generalServiceAssembler.convertSetOpenAppointmentTimesResponseDto(appointmentsCount);
+        return doctorServiceAssembler.convertSetOpenAppointmentTimesResponseDto(appointmentsCount);
     }
 
     public ViewAllAppointmentsResponseDto viewAllAppointments(Long doctorId) throws UserNotFoundException {
         log.info("Viewing all appointments for doctorId: {}", doctorId);
         List<Appointment> appointments = appointmentRepository.findByDoctorId(doctorId);
-        return generalServiceAssembler.convertViewAllAppointmentsResponseDto(appointments);
+        return doctorServiceAssembler.convertViewAllAppointmentsResponseDto(appointments);
     }
 
     @Transactional

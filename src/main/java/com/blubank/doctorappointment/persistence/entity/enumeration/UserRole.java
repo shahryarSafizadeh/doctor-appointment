@@ -5,6 +5,6 @@ package com.blubank.doctorappointment.persistence.entity.enumeration;
  * @since 6/14/2024 
  */
 public enum UserRole {
-    DOCTOR,
-    PATIENT
+    ROLE_DOCTOR,
+    ROLE_PATIENT
 }
