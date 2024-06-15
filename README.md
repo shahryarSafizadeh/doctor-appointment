@@ -17,3 +17,4 @@ The Doctor Appointment System is a Spring Boot application designed to facilitat
 - **Hibernate**: ORM for database interactions.
 - **H2 Database**: In-memory database for development and testing.
 - **Maven**: Build and dependency management tool.
+- **Docker**: Containerization for consistent environments.
