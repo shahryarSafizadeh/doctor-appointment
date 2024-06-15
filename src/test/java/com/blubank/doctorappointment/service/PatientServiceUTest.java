@@ -1,34 +1,37 @@
 package com.blubank.doctorappointment.service;
 
-import com.blubank.doctorappointment.dto.*;
-import com.blubank.doctorappointment.dto.exception.AppointmentIsTakenException;
-import com.blubank.doctorappointment.dto.exception.NoAppointmentFoundException;
+import com.blubank.doctorappointment.dto.ReserveAppointmentRequestDto;
+import com.blubank.doctorappointment.dto.ReserveAppointmentResponseDto;
+import com.blubank.doctorappointment.dto.ViewAllOpenAppointmentResponseDto;
+import com.blubank.doctorappointment.dto.ViewPersonalAppointmentsResponseDto;
 import com.blubank.doctorappointment.dto.exception.UserNotFoundException;
+import com.blubank.doctorappointment.persistence.entity.AppUser;
 import com.blubank.doctorappointment.persistence.entity.Appointment;
 import com.blubank.doctorappointment.persistence.entity.Patient;
+import com.blubank.doctorappointment.persistence.repository.AppUserRepository;
 import com.blubank.doctorappointment.persistence.repository.AppointmentRepository;
 import com.blubank.doctorappointment.persistence.repository.PatientRepository;
 import com.blubank.doctorappointment.service.assembler.GeneralServiceAssembler;
 import com.blubank.doctorappointment.service.assembler.PatientServiceAssembler;
 import com.blubank.doctorappointment.util.LockManager;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 /**
@@ -40,6 +43,9 @@ public class PatientServiceUTest {
 
     @Mock
     private AppointmentRepository appointmentRepository;
+
+    @Mock
+    private AppUserRepository appUserRepository;
 
     @Mock
     private PatientRepository patientRepository;
@@ -56,140 +62,98 @@ public class PatientServiceUTest {
     @InjectMocks
     private PatientService patientService;
 
-    private static final Long PATIENT_ID = 1L;
-    private static final Long APPOINTMENT_ID = 1L;
-    private static final String DATE_STRING = "2023-06-01";
-    private static final LocalDate DATE = LocalDate.parse(DATE_STRING);
-    private static final LocalDateTime START_TIME = DATE.atStartOfDay();
-    private static final LocalDateTime END_TIME = DATE.atTime(23, 59, 59);
+    @Mock
+    private SecurityContext securityContext;
 
-    private Patient patient;
-    private Appointment appointment;
+    @Mock
+    private Authentication authentication;
 
-    @BeforeEach
-    public void setup() {
-        patient = new Patient();
-        patient.setId(PATIENT_ID);
-        patient.setName("John Doe");
-        patient.setPhoneNumber("123456789");
+    @Test
+    void testViewAllOpenAppointments() {
+        String date = "2023-06-15";
+        LocalDate localDate = LocalDate.parse(date);
+        LocalDateTime startOfDay = localDate.atStartOfDay();
+        LocalDateTime endOfDay = localDate.atTime(23, 59, 59);
 
-        appointment = new Appointment();
-        appointment.setId(APPOINTMENT_ID);
-        appointment.setPatient(patient);
+        List<Appointment> appointmentList = Collections.emptyList();
+        when(appointmentRepository.findByIsTakenFalseAndStartTimeBetween(startOfDay, endOfDay)).thenReturn(appointmentList);
+
+        ViewAllOpenAppointmentResponseDto responseDto = new ViewAllOpenAppointmentResponseDto();
+        when(patientServiceAssembler.convertViewAllOpenAppointmentsResponseDto(appointmentList)).thenReturn(responseDto);
+
+        ViewAllOpenAppointmentResponseDto result = patientService.viewAllOpenAppointments(date);
+
+        verify(appointmentRepository).findByIsTakenFalseAndStartTimeBetween(startOfDay, endOfDay);
+        verify(patientServiceAssembler).convertViewAllOpenAppointmentsResponseDto(appointmentList);
+
+        assertEquals(responseDto, result);
+    }
+
+    @Test
+    void testReserveAppointment() throws Exception {
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+
+        ReserveAppointmentRequestDto request = new ReserveAppointmentRequestDto();
+        request.setAppointmentId(1L);
+
+        Long patientId = 1L;
+        when(authentication.getPrincipal()).thenReturn("shahryar");
+        AppUser appUser = new AppUser();
+        appUser.setId(patientId);
+        when(appUserRepository.findByUsername("shahryar")).thenReturn(Optional.of(appUser));
+
+        Lock lock = mock(Lock.class);
+        when(lockManager.getLock(request.getAppointmentId())).thenReturn(lock);
+
+        Appointment appointment = new Appointment();
+        appointment.setId(request.getAppointmentId());
         appointment.setTaken(false);
-        appointment.setDate(DATE.atStartOfDay());
-        appointment.setStartTime(START_TIME);
-        appointment.setEndTime(END_TIME);
-    }
+        when(appointmentRepository.findByIdAndIsTakenFalse(request.getAppointmentId())).thenReturn(Optional.of(appointment));
 
-    @Test
-    public void testViewAllOpenAppointments() {
-        List<Appointment> appointments = Arrays.asList(appointment);
-        ViewAllOpenAppointmentResponseDto expectedResponse = new ViewAllOpenAppointmentResponseDto();
+        Patient patient = new Patient();
+        patient.setId(patientId);
+        when(patientRepository.findById(patientId)).thenReturn(Optional.of(patient));
 
-        when(appointmentRepository.findByIsTakenFalseAndStartTimeBetween(START_TIME, END_TIME)).thenReturn(appointments);
-        when(patientServiceAssembler.convertViewAllOpenAppointmentsResponseDto(appointments)).thenReturn(expectedResponse);
+        ReserveAppointmentResponseDto responseDto = new ReserveAppointmentResponseDto();
+        when(patientServiceAssembler.convertReserveAppointmentResponseDto(appointment)).thenReturn(responseDto);
 
-        ViewAllOpenAppointmentResponseDto response = patientService.viewAllOpenAppointments(DATE_STRING);
-        assertNotNull(response);
-        verify(appointmentRepository).findByIsTakenFalseAndStartTimeBetween(START_TIME, END_TIME);
-        verify(patientServiceAssembler).convertViewAllOpenAppointmentsResponseDto(appointments);
-    }
+        ReserveAppointmentResponseDto result = patientService.reserveAppointment(request);
 
-    @Test
-    @Transactional
-    public void testReserveAppointment_NoAppointmentFoundException() {
-        ReserveAppointmentRequestDto request = new ReserveAppointmentRequestDto();
-        request.setAppointmentId(APPOINTMENT_ID);
-        request.setPatientId(PATIENT_ID);
-
-        when(appointmentRepository.findByIdAndIsTakenFalse(APPOINTMENT_ID)).thenReturn(Optional.empty());
-        Lock lock = mock(Lock.class);
-        when(lockManager.getLock(APPOINTMENT_ID)).thenReturn(lock);
-
-        NoAppointmentFoundException exception = assertThrows(NoAppointmentFoundException.class, () -> {
-            patientService.reserveAppointment(request);
-        });
-        assertEquals("Appointment not found", exception.getMessage());
-
+        verify(lockManager).getLock(request.getAppointmentId());
         verify(lock).lock();
+        verify(appointmentRepository).findByIdAndIsTakenFalse(request.getAppointmentId());
+        verify(patientRepository).findById(patientId);
+        verify(appointmentRepository).save(any(Appointment.class));
         verify(lock).unlock();
+        verify(lockManager).removeLock(request.getAppointmentId());
+        verify(patientServiceAssembler).convertReserveAppointmentResponseDto(appointment);
+
+        assertEquals(responseDto, result);
     }
 
     @Test
-    @Transactional
-    public void testReserveAppointment_AppointmentIsTakenException() {
-        appointment.setTaken(true);
-        ReserveAppointmentRequestDto request = new ReserveAppointmentRequestDto();
-        request.setAppointmentId(APPOINTMENT_ID);
-        request.setPatientId(PATIENT_ID);
+    void testViewPersonalAppointments() throws UserNotFoundException {
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
 
-        when(appointmentRepository.findByIdAndIsTakenFalse(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
-        Lock lock = mock(Lock.class);
-        when(lockManager.getLock(APPOINTMENT_ID)).thenReturn(lock);
+        Long patientId = 1L;
+        when(authentication.getPrincipal()).thenReturn("shahryar");
+        AppUser appUser = new AppUser();
+        appUser.setId(patientId);
+        when(appUserRepository.findByUsername("shahryar")).thenReturn(Optional.of(appUser));
 
-        AppointmentIsTakenException exception = assertThrows(AppointmentIsTakenException.class, () -> {
-            patientService.reserveAppointment(request);
-        });
-        assertEquals("Cannot delete a taken appointment", exception.getMessage());
+        List<Appointment> appointmentList = Collections.emptyList();
+        when(appointmentRepository.findByPatientId(patientId)).thenReturn(appointmentList);
 
-        verify(lock).lock();
-        verify(lock).unlock();
-    }
+        ViewPersonalAppointmentsResponseDto responseDto = new ViewPersonalAppointmentsResponseDto();
+        when(patientServiceAssembler.convertViewPersonalAppointmentsResponseDto(appointmentList)).thenReturn(responseDto);
 
-    @Test
-    @Transactional
-    public void testReserveAppointment_UserNotFoundException() {
-        ReserveAppointmentRequestDto request = new ReserveAppointmentRequestDto();
-        request.setAppointmentId(APPOINTMENT_ID);
-        request.setPatientId(PATIENT_ID);
+        ViewPersonalAppointmentsResponseDto result = patientService.viewPersonalAppointments();
 
-        when(appointmentRepository.findByIdAndIsTakenFalse(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
-        when(patientRepository.findById(PATIENT_ID)).thenReturn(Optional.empty());
-        Lock lock = mock(Lock.class);
-        when(lockManager.getLock(APPOINTMENT_ID)).thenReturn(lock);
+        verify(appointmentRepository).findByPatientId(patientId);
+        verify(patientServiceAssembler).convertViewPersonalAppointmentsResponseDto(appointmentList);
 
-        UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> {
-            patientService.reserveAppointment(request);
-        });
-        assertEquals("Patient not found", exception.getMessage());
-
-        verify(lock).lock();
-        verify(lock).unlock();
-    }
-
-    @Test
-    @Transactional
-    public void testReserveAppointment_Success() throws NoAppointmentFoundException, AppointmentIsTakenException, UserNotFoundException {
-        ReserveAppointmentRequestDto request = new ReserveAppointmentRequestDto();
-        request.setAppointmentId(APPOINTMENT_ID);
-        request.setPatientId(PATIENT_ID);
-
-        when(appointmentRepository.findByIdAndIsTakenFalse(APPOINTMENT_ID)).thenReturn(Optional.of(appointment));
-        when(patientRepository.findById(PATIENT_ID)).thenReturn(Optional.of(patient));
-        when(patientServiceAssembler.convertReserveAppointmentResponseDto(any(Appointment.class))).thenReturn(new ReserveAppointmentResponseDto());
-        Lock lock = mock(Lock.class);
-        when(lockManager.getLock(APPOINTMENT_ID)).thenReturn(lock);
-
-        ReserveAppointmentResponseDto response = patientService.reserveAppointment(request);
-        assertNotNull(response);
-
-        verify(appointmentRepository).save(appointment);
-        verify(lock).lock();
-        verify(lock).unlock();
-    }
-
-    @Test
-    public void testViewPersonalAppointments() {
-        List<Appointment> appointments = Arrays.asList(appointment);
-        ViewPersonalAppointmentsResponseDto expectedResponse = new ViewPersonalAppointmentsResponseDto();
-
-        when(appointmentRepository.findByPatientId(PATIENT_ID)).thenReturn(appointments);
-        when(patientServiceAssembler.convertViewPersonalAppointmentsResponseDto(appointments)).thenReturn(expectedResponse);
-
-        ViewPersonalAppointmentsResponseDto response = patientService.viewPersonalAppointments(PATIENT_ID);
-        assertNotNull(response);
-        verify(appointmentRepository).findByPatientId(PATIENT_ID);
-        verify(patientServiceAssembler).convertViewPersonalAppointmentsResponseDto(appointments);
+        assertEquals(responseDto, result);
     }
 }

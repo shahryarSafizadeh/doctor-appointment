@@ -40,29 +40,28 @@ public class DoctorController {
     /**
      * Retrieves all open appointments for a specific doctor.
      *
-     * @param doctorId the ID of the doctor whose open appointments are to be retrieved
      * @return a {@link ViewAllAppointmentsResponseDto} containing the details of all open appointments
      * @throws UserNotFoundException if the user (doctor) is not found.
      */
     @GetMapping(value = "/appointment",
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ViewAllAppointmentsResponseDto viewAllAppointments(@RequestParam Long doctorId) throws UserNotFoundException {
-        return doctorService.viewAllAppointments(doctorId);
+    public ViewAllAppointmentsResponseDto viewAllAppointments() throws UserNotFoundException {
+        return doctorService.viewAllAppointments();
     }
 
     /**
      * Deletes an appointment by its ID.
      *
      * @param appointmentId the ID of the appointment to be deleted
-     * @param doctorId      the ID of Doctor
      * @throws AppointmentIsTakenException if the appointment is already taken
      * @throws NoAppointmentFoundException if no appointment is found with the provided ID
      * @throws AccessDeniedException       if the user (doctor) does not have access to the wanted appointment
+     * @throws UserNotFoundException       if the user (doctor) is not found.
      */
-    @DeleteMapping(value = "/appointment/{appointmentId}",
+    @DeleteMapping(value = "/appointment",
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public void deleteAppointment(@PathVariable Long appointmentId, @RequestParam Long doctorId) throws AppointmentIsTakenException,
-            NoAppointmentFoundException, AccessDeniedException {
-        doctorService.deleteAppointment(appointmentId, doctorId);
+    public void deleteAppointment(@RequestParam Long appointmentId) throws AppointmentIsTakenException,
+            NoAppointmentFoundException, AccessDeniedException, UserNotFoundException {
+        doctorService.deleteAppointment(appointmentId);
     }
 }

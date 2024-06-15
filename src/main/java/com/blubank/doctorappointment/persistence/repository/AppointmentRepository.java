@@ -1,6 +1,7 @@
 package com.blubank.doctorappointment.persistence.repository;
 
 import com.blubank.doctorappointment.persistence.entity.Appointment;
+import com.blubank.doctorappointment.persistence.entity.Doctor;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
@@ -17,4 +18,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findByIsTakenFalseAndStartTimeBetween(LocalDateTime startOfDay, LocalDateTime endOfDay);
     Optional<Appointment> findByIdAndIsTakenFalse(Long id);
     List<Appointment> findByPatientId(Long patientId);
+    List<Appointment> findByDoctorAndStartTimeBetween(Doctor doctor, LocalDateTime startTime, LocalDateTime endTime);
+    Optional<Appointment> findByDoctorIdAndId(Long doctorId, Long appointmentId);
+
 }

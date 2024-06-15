@@ -4,33 +4,33 @@ import lombok.Data;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import java.time.LocalDateTime;
 
 /**
  * @author Shahryar Safizadeh
- * @since 6/14/2024
+ * @since 6/15/2024 
  */
 @Data
-public class SetOpenAppointmentTimesRequestDto {
+public class LoginRequestDto {
 
     /**
-     * start time of appointment
+     * username
      */
-    @NotNull
-    private LocalDateTime startTime;
+    @NotEmpty
+    private String username;
 
     /**
-     * end time of appointment
+     * password
      */
-    @NotNull
-    private LocalDateTime endTime;
+    @NotEmpty
+    private String password;
 
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
-                .append("startTime", startTime)
-                .append("endTime", endTime)
+                .append("username", username)
+                .append("password", password)
                 .toString();
     }
 }

@@ -1,6 +1,9 @@
 package com.blubank.doctorappointment.controller;
 
-import com.blubank.doctorappointment.dto.*;
+import com.blubank.doctorappointment.dto.ReserveAppointmentRequestDto;
+import com.blubank.doctorappointment.dto.ReserveAppointmentResponseDto;
+import com.blubank.doctorappointment.dto.ViewAllOpenAppointmentResponseDto;
+import com.blubank.doctorappointment.dto.ViewPersonalAppointmentsResponseDto;
 import com.blubank.doctorappointment.dto.exception.AppointmentIsTakenException;
 import com.blubank.doctorappointment.dto.exception.NoAppointmentFoundException;
 import com.blubank.doctorappointment.dto.exception.UserNotFoundException;
@@ -13,7 +16,7 @@ import javax.validation.Valid;
 
 /**
  * @author Shahryar Safizadeh
- * @since 6/14/2024 
+ * @since 6/14/2024
  */
 @RestController
 @RequestMapping("/patient")
@@ -38,7 +41,7 @@ public class PatientController {
      *
      * @param request the {@link ReserveAppointmentRequestDto} containing the details of the appointment to be reserved
      * @return a {@link ReserveAppointmentResponseDto} containing the details of the reserved appointment
-     * @throws UserNotFoundException if the specified patient is not found
+     * @throws UserNotFoundException       if the specified patient is not found
      * @throws NoAppointmentFoundException if the specified appointment is not found
      * @throws AppointmentIsTakenException if the specified appointment has already been taken
      */
@@ -53,12 +56,12 @@ public class PatientController {
     /**
      * Retrieves all personal appointments for a specific patient.
      *
-     * @param patientId the ID of the patient whose appointments are to be retrieved
      * @return a {@link ViewPersonalAppointmentsResponseDto} containing the details of all appointments for the specified patient
+     * @throws UserNotFoundException if the specified patient is not found
      */
     @GetMapping(value = "/appointment/personal",
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ViewPersonalAppointmentsResponseDto viewPersonalAppointments(@RequestParam Long patientId) {
-        return patientService.viewPersonalAppointments(patientId);
+    public ViewPersonalAppointmentsResponseDto viewPersonalAppointments() throws UserNotFoundException {
+        return patientService.viewPersonalAppointments();
     }
 }
