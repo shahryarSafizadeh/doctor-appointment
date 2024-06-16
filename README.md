@@ -18,3 +18,21 @@ The Doctor Appointment System is a Spring Boot application designed to facilitat
 - **H2 Database**: In-memory database for development and testing.
 - **Maven**: Build and dependency management tool.
 - **Docker**: Containerization for consistent environments.
+- **JUnit & Mockito**: For unit testing the application.
+
+## API Endpoints
+
+### Authentication
+- **Register**: `POST /api/auth/register`
+- **Login**: `POST /api/auth/login`
+
+### Doctor Endpoints
+- **Set Open Appointment Times**: `POST /api/doctor/appointment`
+- **View All Appointments**: `GET /api/doctor/appointment`
+- **Delete Appointment**: `DELETE /api/doctor/appointment?appointmentId={appointmentId}`
+
+### Patient Endpoints
+- **View All Open Appointments**: `GET /api/patient/appointment/open?date={date}`
+- **Reserve Appointment**: `POST /api/patient/appointment/reservation`
+- **View Personal Appointments**: `GET /api/patient/appointment/personal`
+
