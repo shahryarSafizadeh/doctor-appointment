@@ -19,7 +19,7 @@ import javax.validation.Valid;
  * @since 6/14/2024
  */
 @RestController
-@RequestMapping("/patient")
+@RequestMapping("/api/patient")
 @RequiredArgsConstructor
 public class PatientController {
     private final PatientService patientService;

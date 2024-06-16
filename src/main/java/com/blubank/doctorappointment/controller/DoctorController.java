@@ -16,7 +16,7 @@ import javax.validation.Valid;
  * @since 6/14/2024
  */
 @RestController
-@RequestMapping("/doctor")
+@RequestMapping("/api/doctor")
 @RequiredArgsConstructor
 public class DoctorController {
     private final DoctorService doctorService;

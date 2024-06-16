@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class AuthService {
 
-    private final AppUserRepository userRepo;
+    private final AppUserRepository appUserRepository;
     private final DoctorRepository doctorRepository;
     private final JWTUtil jwtUtil;
     private final AuthenticationManager authManager;
@@ -41,7 +41,7 @@ public class AuthService {
         registerRequestDto.setPassword(encodedPass);
 
         AppUser appUser = authServiceAssembler.convertToAppUser(registerRequestDto);
-        userRepo.save(appUser);
+        appUserRepository.save(appUser);
 
         log.info("User with username: {} registered successfully", registerRequestDto.getUsername());
         return new RegisterResponseDto();
